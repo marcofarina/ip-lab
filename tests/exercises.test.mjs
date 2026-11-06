@@ -4,6 +4,7 @@ import { TOPICS } from '../src/topics.mjs';
 import { generateExercise, gradeExercise, normalizeAnswer, topicAt } from '../src/exercises.mjs';
 import { prefixMask, maskPrefix, subnetInfo, prefixForHosts, allocateVlsm, ipNumber } from '../src/subnet.mjs';
 import { createRaceCode, parseRaceCode, startSession, currentExercise, finishExercise } from '../src/game.mjs';
+import { splitAddress } from '../src/ipv4.mjs';
 
 test('maschere contigue e tutti i prefissi, inclusi /0 e /32',()=>{
   for(let p=0;p<=32;p++) assert.equal(maskPrefix(prefixMask(p)),p);
@@ -46,6 +47,19 @@ test('tutte le 24 tipologie: 200 varianti ciascuna, risposte complete e opzioni 
 test('tutti gli argomenti selezionati prima di una ripetizione',()=>{
   const ids=TOPICS.map(t=>t.id);
   for(let cycle=0;cycle<10;cycle++) assert.equal(new Set(Array.from({length:ids.length},(_,i)=>topicAt('CLASSE',cycle*ids.length+i,ids))).size,ids.length);
+});
+test('raggruppamento: dodici indirizzi distinti in sei reti, due per classe',()=>{
+  for(let i=0;i<3000;i++) {
+    const q=generateExercise('grouping','GROUPING-AUDIT',i);
+    assert.equal(new Set(q.rows).size,12);
+    const groups=new Map();
+    for(const ip of q.rows) {
+      const d=splitAddress(ip), key=`${d.className}:${d.netId}`;
+      groups.set(key,(groups.get(key)??0)+1);
+    }
+    assert.equal(groups.size,6);
+    assert.ok([...groups.values()].every(n=>n===2));
+  }
 });
 test('codice gara: contiene argomenti e lunghezza, rileva errori di copia',()=>{
   const topics=['validity','vlsm','cidr-mask'];

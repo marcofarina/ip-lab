@@ -101,11 +101,13 @@ export function generateExercise(topicId, code, index) {
     }
     case 'grouping': {
       const networks = classes.flatMap(name => Array.from({length:2}, () => randomAddress(rng, name)));
-      // Make all six generated networks distinct, including the small A space.
-      if (splitAddress(networks[0]).netId === splitAddress(networks[1]).netId) {
-        const bytes = networks[1].split('.');
-        bytes[0] = bytes[0] === '126' ? '1' : String(Number(bytes[0]) + 1);
-        networks[1] = bytes.join('.');
+      // Make each pair distinct in every class, even when a random net-id repeats.
+      for (let i = 1; i < networks.length; i += 2) {
+        if (splitAddress(networks[i-1]).netId !== splitAddress(networks[i]).netId) continue;
+        const bytes = networks[i].split('.');
+        const pos = CLASS_INFO[addressClass(networks[i])].octets - 1;
+        bytes[pos] = pos === 0 ? (bytes[0] === '126' ? '1' : String(Number(bytes[0]) + 1)) : String((Number(bytes[pos]) + 1) % 256);
+        networks[i] = bytes.join('.');
       }
       rows = shuffle(networks.flatMap(base => {
         const head = base.split('.').slice(0, CLASS_INFO[addressClass(base)].octets);
